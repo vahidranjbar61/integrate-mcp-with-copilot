@@ -10,6 +10,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
 from pathlib import Path
+from sqlmodel import select
+
+# initialize DB
+from .db import init_db, get_session
+from .models import Activity
 
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
@@ -85,7 +90,29 @@ def root():
 
 @app.get("/activities")
 def get_activities():
+    # Try to read activities from DB; fallback to in-memory
+    try:
+        with get_session() as session:
+            statement = select(Activity)
+            results = session.exec(statement).all()
+            if results:
+                out = {}
+                for a in results:
+                    out[a.name] = {
+                        "description": a.description,
+                        "schedule": a.schedule,
+                        "max_participants": a.max_participants,
+                        "participants": []
+                    }
+                return out
+    except Exception:
+        pass
     return activities
+
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
 
 
 @app.post("/activities/{activity_name}/signup")

@@ -1,2 +1,6 @@
 fastapi
 uvicorn
+
+# Added for persistent storage
+sqlmodel
+sqlite-utils
